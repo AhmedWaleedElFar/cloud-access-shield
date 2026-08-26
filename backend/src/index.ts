@@ -2,6 +2,9 @@ import express from 'express';
 import { initializeDriver, testConnection, closeDriver } from './db';
 import { corsMiddleware } from './middleware/cors';
 import { errorHandlerMiddleware } from './middleware/errorHandler';
+import { usersRouter } from './routes/users';
+import { analyticsRouter } from './routes/analytics';
+import { analyzeRouter } from './routes/analyze';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,10 +23,10 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Routes will be registered here in Phase 5
-// app.use('/api/users', createUsersRouter());
-// app.use('/api/access', createAccessRouter());
-// app.use('/api/analytics', createAnalyticsRouter());
+// Routes
+app.use('/api/users', usersRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/api/analyze', analyzeRouter);
 
 // 404 handler
 app.use((_req, res) => {
