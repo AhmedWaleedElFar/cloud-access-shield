@@ -5,6 +5,7 @@ import { errorHandlerMiddleware } from './middleware/errorHandler';
 import { usersRouter } from './routes/users';
 import { analyticsRouter } from './routes/analytics';
 import { analyzeRouter } from './routes/analyze';
+import { accessRouter } from './routes/access';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +28,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/users', usersRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/analyze', analyzeRouter);
+app.use('/api/access', accessRouter);
 
 // 404 handler
 app.use((_req, res) => {
