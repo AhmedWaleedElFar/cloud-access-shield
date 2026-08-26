@@ -6,17 +6,21 @@ interface UserSearchProps {
   onSelectUser: (userId: string) => void;
 }
 
+const PAGE_SIZE = 25;
+
 export default function UserSearch({ onSelectUser }: UserSearchProps) {
-  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [allUsers, setAllUsers] = useState<UserListItem[]>([]);
+  const [filtered, setFiltered] = useState<UserListItem[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await api.getUsers();
-        setUsers(res.data);
+        setAllUsers(res.data);
+        setFiltered(res.data);
       } catch {
         // silent
       } finally {
@@ -28,21 +32,21 @@ export default function UserSearch({ onSelectUser }: UserSearchProps) {
 
   const handleSearch = async (q: string) => {
     setQuery(q);
+    setPage(1);
     if (q.length < 2) {
-      const res = await api.getUsers();
-      setUsers(res.data);
+      setFiltered(allUsers);
       return;
     }
-    setSearching(true);
     try {
       const res = await api.searchUsers(q);
-      setUsers(res.data);
+      setFiltered(res.data);
     } catch {
-      // silent
-    } finally {
-      setSearching(false);
+      setFiltered([]);
     }
   };
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageUsers = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading) {
     return (
@@ -65,7 +69,10 @@ export default function UserSearch({ onSelectUser }: UserSearchProps) {
         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
 
-      {searching && <p className="text-gray-500">Searching...</p>}
+      <p className="text-sm text-gray-500">
+        {filtered.length} user{filtered.length !== 1 ? 's' : ''} found
+        {query && ` for "${query}"`}
+      </p>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -79,7 +86,7 @@ export default function UserSearch({ onSelectUser }: UserSearchProps) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.slice(0, 100).map((user) => (
+            {pageUsers.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onSelectUser(user.id)}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
@@ -98,10 +105,29 @@ export default function UserSearch({ onSelectUser }: UserSearchProps) {
             ))}
           </tbody>
         </table>
-        {users.length > 100 && (
-          <p className="px-6 py-3 text-sm text-gray-500">Showing 100 of {users.length} users</p>
-        )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-700">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
