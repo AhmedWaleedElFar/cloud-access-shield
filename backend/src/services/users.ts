@@ -38,7 +38,8 @@ export async function getUser(userId: string): Promise<User | null> {
 }
 
 export async function searchUsers(query: string): Promise<UserListItem[]> {
-  const cacheKey = `users:search:${query}`;
+  const normalizedQuery = query.toLowerCase().trim();
+  const cacheKey = `users:search:${normalizedQuery}`;
   const cached = userCache.get(cacheKey);
   if (cached) return cached as UserListItem[];
 
@@ -47,7 +48,8 @@ export async function searchUsers(query: string): Promise<UserListItem[]> {
   try {
     const result = await session.run(
       `MATCH (u:User)
-       WHERE u.name CONTAINS $query OR u.email CONTAINS $query
+       WHERE toLower(u.name) CONTAINS toLower($query)
+          OR toLower(u.email) CONTAINS toLower($query)
        OPTIONAL MATCH (u)-[:MEMBER_OF*1..6]->(:Group)
                       -[:HAS_ROLE]->(:Role)-[:CAN_ACCESS]->(res:Resource)
        WITH u,
@@ -60,9 +62,9 @@ export async function searchUsers(query: string): Promise<UserListItem[]> {
        RETURN u.id AS id, u.email AS email, u.name AS name,
               u.created_at AS created_at,
               escCount, hasHigh
-       ORDER BY u.name
-       LIMIT 50`,
-      { query },
+       ORDER BY u.name, u.id
+       LIMIT 200`,
+      { query: normalizedQuery },
     );
 
     const users: UserListItem[] = result.records.map((rec) => ({
@@ -102,7 +104,7 @@ export async function getAllUsers(): Promise<UserListItem[]> {
        RETURN u.id AS id, u.email AS email, u.name AS name,
               u.created_at AS created_at,
               escCount, hasHigh
-       ORDER BY u.name`,
+       ORDER BY u.name, u.id`,
     );
 
     const users: UserListItem[] = result.records.map((rec) => ({
