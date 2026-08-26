@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { AccessPath, EscalationDetail } from '@shared/types';
+import Loading from '../components/Loading';
+import Empty from '../components/Empty';
+import RiskBadge from '../components/RiskBadge';
 
 interface AccessPathsProps {
   userId: string | null;
@@ -38,19 +41,12 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
     return (
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Access Paths</h2>
-        <p className="text-gray-600 mt-4">No user selected. Go to Users page to select one.</p>
+        <Empty title="No user selected" description="Go to Users page to select one." />
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-900">Access Paths</h2>
-        <p className="text-gray-600">Loading paths for {userId}...</p>
-      </div>
-    );
-  }
+  if (loading) return <Loading message={`Loading paths for ${userId}...`} />;
 
   return (
     <div className="space-y-6">
@@ -82,13 +78,7 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
           <div key={i} className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-500">Path {i + 1} — {path.hops} hops</span>
-              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                path.riskLevel === 'HIGH' ? 'bg-red-100 text-red-800' :
-                path.riskLevel === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-green-100 text-green-800'
-              }`}>
-                {path.riskLevel}
-              </span>
+              <RiskBadge level={path.riskLevel} />
             </div>
             <div className="flex items-center text-sm text-gray-700">
               {path.nodes.map((node, j) => (
@@ -110,7 +100,7 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
           </div>
         ))}
         {paths.length === 0 && (
-          <p className="text-gray-500">No access paths found for this user.</p>
+          <Empty title="No paths found" description="No access paths found for this user." />
         )}
       </div>
     </div>
