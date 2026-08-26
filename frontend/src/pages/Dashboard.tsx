@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { UserStats } from '@shared/types';
+import Loading from '../components/Loading';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -21,23 +23,8 @@ export default function Dashboard() {
     load();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-8">
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-gray-600">Loading stats...</p>
-      </div>
-    );
-  }
-
-  if (error || !stats) {
-    return (
-      <div className="space-y-8">
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-red-600">{error || 'No data available'}</p>
-      </div>
-    );
-  }
+  if (loading) return <Loading message="Loading dashboard..." />;
+  if (error || !stats) return <ErrorMessage title="Error" message={error || 'No data available'} />;
 
   const cards = [
     { label: 'Total Users', value: stats.total_users, color: 'bg-blue-500' },
@@ -61,8 +48,8 @@ export default function Dashboard() {
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Overview</h3>
-        <p className="text-gray-600">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">System Overview</h3>
+        <p className="text-gray-600 text-sm">
           Cloud Access Shield is analyzing{' '}
           <span className="font-semibold">{stats.total_users}</span> users across
           your IAM graph. Average user has access to{' '}

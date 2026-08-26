@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import Loading from '../components/Loading';
+import RiskBadge from '../components/RiskBadge';
 
 interface EscalationRow {
   userId: string;
@@ -38,14 +40,7 @@ export default function Analytics() {
     load();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
-        <p className="text-gray-600">Loading analytics...</p>
-      </div>
-    );
-  }
+  if (loading) return <Loading message="Loading analytics..." />;
 
   const highRiskUsers = escalations.filter((e) => e.hasHighRisk).length;
   const top10 = [...escalations].sort((a, b) => b.score - a.score).slice(0, 10);
@@ -79,7 +74,7 @@ export default function Analytics() {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paths</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">High Risk</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -89,9 +84,7 @@ export default function Analytics() {
                 <td className="px-4 py-3 text-sm font-semibold text-gray-900">{row.score}</td>
                 <td className="px-4 py-3 text-sm text-gray-500">{row.pathCount}</td>
                 <td className="px-4 py-3">
-                  {row.hasHighRisk && (
-                    <span className="px-2 text-xs font-semibold rounded-full bg-red-100 text-red-800">HIGH</span>
-                  )}
+                  {row.hasHighRisk && <RiskBadge level="HIGH" />}
                 </td>
               </tr>
             ))}
