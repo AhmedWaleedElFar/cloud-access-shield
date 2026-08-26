@@ -26,6 +26,8 @@ export default function Toast({ message, type, duration = 3000, onClose }: Toast
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={`fixed bottom-4 right-4 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium z-50 transition-opacity duration-300 ${typeStyles[type]} ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
