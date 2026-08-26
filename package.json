@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "cd backend && npm install && npm run build",
+    "build": "node -e \"const{cpSync}=require('fs');cpSync('shared','backend/shared',{recursive:true})\" && cd backend && npm install && npm run build",
     "start": "cd backend && npm start",
     "seed": "cd backend && npm run seed",
     "dev": "cd backend && npm run dev"

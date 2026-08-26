@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/src/index.js",
     "seed": "ts-node -r tsconfig-paths/register src/seed.ts",
     "test-queries": "ts-node -r tsconfig-paths/register scripts/test-queries.ts"
   },
