@@ -107,10 +107,13 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
 
   if (loading) return <Loading message={`Loading paths for ${userId}...`} />;
 
+  const showSimPanel = simResult || simLoading;
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Access Paths — {userId}</h2>
 
+      {/* Escalation summary — always visible */}
       {escalation && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" role="group" aria-label="Escalation summary">
           <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
@@ -132,139 +135,180 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
         </div>
       )}
 
-      {/* Simulation Result — above the paths so user doesn't have to scroll */}
-      {simResult && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 animate-in fade-in slide-in-from-top-2" role="region" aria-label="Simulation result">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">&#x1F9EA;</span>
-            <h3 className="text-lg font-semibold text-gray-900">Simulation Result</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            What happens if we revoke <code className="bg-white px-1.5 py-0.5 rounded font-mono text-xs border">{simResult.relationshipType}</code> to <strong>{simResult.targetId}</strong>?
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-lg bg-white border">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Score Before</p>
-              <p className="text-2xl font-bold mt-1">{simResult.before.score}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-white border border-blue-300">
-              <p className="text-xs text-blue-600 uppercase tracking-wide font-medium">Score After</p>
-              <p className="text-2xl font-bold text-blue-700 mt-1">{simResult.after.score}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-white border">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Paths Before</p>
-              <p className="text-2xl font-bold mt-1">{simResult.before.pathCount}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-white border border-blue-300">
-              <p className="text-xs text-blue-600 uppercase tracking-wide font-medium">Paths After</p>
-              <p className="text-2xl font-bold text-blue-700 mt-1">{simResult.after.pathCount}</p>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center justify-between">
-            <span className={`text-sm font-semibold ${simResult.after.score < simResult.before.score ? 'text-green-600' : simResult.after.score > simResult.before.score ? 'text-red-600' : 'text-gray-600'}`}>
-              {simResult.after.score < simResult.before.score
-                ? `&#x2193; Score drops by ${simResult.before.score - simResult.after.score} points`
-                : simResult.after.score > simResult.before.score
-                  ? `&#x2191; Score increases by ${simResult.after.score - simResult.before.score} points`
-                  : 'No change'}
-            </span>
-            <div className="flex gap-2">
+      {/* Main layout: optional sidebar + paths */}
+      <div className="flex gap-5" style={{ alignItems: 'flex-start' }}>
+        {/* Simulation Sidebar — left side */}
+        {showSimPanel && (
+          <div className="w-[340px] shrink-0 bg-gradient-to-b from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5 animate-in fade-in slide-in-from-left-2" role="region" aria-label="Simulation result">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">&#x1F9EA;</span>
+                <h3 className="text-lg font-semibold text-gray-900">Simulation</h3>
+              </div>
               <button
                 onClick={() => setSimResult(null)}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Dismiss simulation"
               >
-                Dismiss
-              </button>
-              <button
-                onClick={() => setConfirm({
-                  userId: simResult.userId,
-                  relationshipType: simResult.relationshipType,
-                  targetId: simResult.targetId,
-                  targetLabel: simResult.targetId,
-                })}
-                className="px-4 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                aria-label="Revoke this access after simulation"
-              >
-                Revoke This Access
+                &#x2715;
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {simLoading && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
-          <div className="animate-spin h-5 w-5 border-2 border-blue-300 border-t-blue-600 rounded-full" />
-          <span className="text-sm text-blue-700 font-medium">Running simulation...</span>
-        </div>
-      )}
+            {simLoading ? (
+              <div className="flex items-center gap-3 py-4">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-300 border-t-blue-600 rounded-full" />
+                <span className="text-sm text-blue-700 font-medium">Running simulation...</span>
+              </div>
+            ) : simResult ? (
+              <>
+                <p className="text-sm text-gray-600 mb-4">
+                  Revoke <code className="bg-white px-1.5 py-0.5 rounded font-mono text-xs border">{simResult.relationshipType}</code> to <strong>{simResult.targetId}</strong>?
+                </p>
 
-      {/* Access Paths */}
-      <div className="space-y-3" role="list" aria-label="Access paths">
-        {paths.map((path, i) => (
-          <div
-            key={i}
-            className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow duration-200"
-            role="listitem"
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-500">Path {i + 1} — {path.hops} hops</span>
-              <RiskBadge level={path.riskLevel} />
-            </div>
-            <div className="flex items-center text-sm text-gray-700 flex-wrap gap-y-2">
-              {path.nodes.map((node, j) => {
-                const nextNode = j < path.nodes.length - 1 ? path.nodes[j + 1] : null;
-                const relType = nextNode ? getRelType(node.type, nextNode.type) : null;
-
-                return (
-                  <span key={j} className="flex items-center">
-                    <span className={`px-2.5 py-1 rounded-md font-medium text-xs ${
-                      node.type === 'User' ? 'bg-blue-100 text-blue-800 ring-1 ring-blue-200' :
-                      node.type === 'Group' ? 'bg-purple-100 text-purple-800 ring-1 ring-purple-200' :
-                      node.type === 'Role' ? 'bg-orange-100 text-orange-800 ring-1 ring-orange-200' :
-                      'bg-red-100 text-red-800 ring-1 ring-red-200'
-                    }`}>
-                      {node.label}
-                    </span>
-                    {nextNode && (
-                      <span className="mx-1 flex items-center gap-1">
-                        <span className="text-gray-300 text-lg" aria-hidden="true">&#x2192;</span>
-                        {relType && (
-                          <span className="flex gap-0.5">
-                            <button
-                              onClick={() => handleSimulate(node.id, relType, nextNode.id)}
-                              disabled={simLoading}
-                              className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                              aria-label={`Simulate revoking ${relType} from ${node.label} to ${nextNode.label}`}
-                            >
-                              sim
-                            </button>
-                            <button
-                              onClick={() => setConfirm({
-                                userId: node.id,
-                                relationshipType: relType,
-                                targetId: nextNode.id,
-                                targetLabel: nextNode.label,
-                              })}
-                              className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-800 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
-                              aria-label={`Revoke ${relType} from ${node.label} to ${nextNode.label}`}
-                            >
-                              revoke
-                            </button>
-                          </span>
-                        )}
+                {/* Score comparison */}
+                <div className="space-y-3 mb-4">
+                  <div className="bg-white rounded-lg p-3 border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Score</span>
+                      <span className={`text-sm font-bold ${
+                        simResult.after.score < simResult.before.score ? 'text-green-600' :
+                        simResult.after.score > simResult.before.score ? 'text-red-600' :
+                        'text-gray-600'
+                      }`}>
+                        {simResult.before.score} → {simResult.after.score}
                       </span>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
+                    </div>
+                    <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        style={{ width: `${simResult.after.score}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white rounded-lg p-3 border text-center">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Paths</p>
+                      <p className="text-lg font-bold mt-0.5">{simResult.before.pathCount} → {simResult.after.pathCount}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border text-center">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">Resources</p>
+                      <p className="text-lg font-bold mt-0.5">{simResult.before.uniqueResources} → {simResult.after.uniqueResources}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-3 border text-center">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">High Risk Paths</p>
+                    <p className="text-lg font-bold mt-0.5">{simResult.before.highRiskPaths} → {simResult.after.highRiskPaths}</p>
+                  </div>
+                </div>
+
+                {/* Impact indicator */}
+                <div className={`text-center text-sm font-semibold py-2 rounded-lg mb-4 ${
+                  simResult.after.score < simResult.before.score ? 'bg-green-100 text-green-700' :
+                  simResult.after.score > simResult.before.score ? 'bg-red-100 text-red-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {simResult.after.score < simResult.before.score
+                    ? `&#x2193; Risk drops ${simResult.before.score - simResult.after.score} points`
+                    : simResult.after.score > simResult.before.score
+                      ? `&#x2191; Risk increases ${simResult.after.score - simResult.before.score} points`
+                      : 'No change'}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSimResult(null)}
+                    className="flex-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-white/60 rounded-lg transition-colors border border-gray-300"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    onClick={() => setConfirm({
+                      userId: simResult.userId,
+                      relationshipType: simResult.relationshipType,
+                      targetId: simResult.targetId,
+                      targetLabel: simResult.targetId,
+                    })}
+                    className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                    aria-label="Revoke this access after simulation"
+                  >
+                    Revoke
+                  </button>
+                </div>
+              </>
+            ) : null}
           </div>
-        ))}
-        {paths.length === 0 && (
-          <Empty title="No paths found" description="No access paths found for this user." />
         )}
+
+        {/* Access Paths — main content */}
+        <div className="flex-1 space-y-3 min-w-0" role="list" aria-label="Access paths">
+          {paths.map((path, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow duration-200"
+              role="listitem"
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-500">Path {i + 1} — {path.hops} hops</span>
+                <RiskBadge level={path.riskLevel} />
+              </div>
+              <div className="flex items-center text-sm text-gray-700 flex-wrap gap-y-2">
+                {path.nodes.map((node, j) => {
+                  const nextNode = j < path.nodes.length - 1 ? path.nodes[j + 1] : null;
+                  const relType = nextNode ? getRelType(node.type, nextNode.type) : null;
+
+                  return (
+                    <span key={j} className="flex items-center">
+                      <span className={`px-2.5 py-1 rounded-md font-medium text-xs ${
+                        node.type === 'User' ? 'bg-blue-100 text-blue-800 ring-1 ring-blue-200' :
+                        node.type === 'Group' ? 'bg-purple-100 text-purple-800 ring-1 ring-purple-200' :
+                        node.type === 'Role' ? 'bg-orange-100 text-orange-800 ring-1 ring-orange-200' :
+                        'bg-red-100 text-red-800 ring-1 ring-red-200'
+                      }`}>
+                        {node.label}
+                      </span>
+                      {nextNode && (
+                        <span className="mx-1 flex items-center gap-1">
+                          <span className="text-gray-300 text-lg" aria-hidden="true">&#x2192;</span>
+                          {relType && (
+                            <span className="flex gap-0.5">
+                              <button
+                                onClick={() => handleSimulate(node.id, relType, nextNode.id)}
+                                disabled={simLoading}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                                aria-label={`Simulate revoking ${relType} from ${node.label} to ${nextNode.label}`}
+                              >
+                                sim
+                              </button>
+                              <button
+                                onClick={() => setConfirm({
+                                  userId: node.id,
+                                  relationshipType: relType,
+                                  targetId: nextNode.id,
+                                  targetLabel: nextNode.label,
+                                })}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-800 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
+                                aria-label={`Revoke ${relType} from ${node.label} to ${nextNode.label}`}
+                              >
+                                revoke
+                              </button>
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {paths.length === 0 && (
+            <Empty title="No paths found" description="No access paths found for this user." />
+          )}
+        </div>
       </div>
 
       {confirm && (

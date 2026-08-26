@@ -1,6 +1,7 @@
 import { getDriver } from '../db';
 import { User, UserListItem, RoleWithCount, UserStats } from '@shared/types';
 import { TieredCache } from './cache';
+import { batchEscalation } from './access';
 
 const userCache = new TieredCache<User | UserListItem[] | UserStats | null>(200, 30_000);
 
@@ -43,6 +44,10 @@ export async function searchUsers(query: string): Promise<UserListItem[]> {
   const cached = userCache.get(cacheKey);
   if (cached) return cached as UserListItem[];
 
+  // Get batch escalation scores (single source of truth for risk data)
+  const escalationData = await batchEscalation();
+  const escMap = new Map(escalationData.map((e) => [e.userId, e]));
+
   const driver = getDriver();
   const session = driver.session();
   try {
@@ -50,31 +55,25 @@ export async function searchUsers(query: string): Promise<UserListItem[]> {
       `MATCH (u:User)
        WHERE toLower(u.name) CONTAINS toLower($query)
           OR toLower(u.email) CONTAINS toLower($query)
-       OPTIONAL MATCH (u)-[:MEMBER_OF*1..6]->(:Group)
-                      -[:HAS_ROLE]->(:Role)-[:CAN_ACCESS]->(res:Resource)
-       WITH u,
-            count(DISTINCT res) AS escCount,
-            CASE WHEN EXISTS {
-              MATCH (u)-[:MEMBER_OF*1..6]->(:Group)
-                    -[:HAS_ROLE]->(r:Role)-[:CAN_ACCESS]->(:Resource)
-              WHERE r.risk_level = 'HIGH'
-            } THEN true ELSE false END AS hasHigh
-       RETURN u.id AS id, u.email AS email, u.name AS name,
-              u.created_at AS created_at,
-              escCount, hasHigh
+       RETURN u.id AS id, u.email AS email, u.name AS name, u.created_at AS created_at
        ORDER BY u.name, u.id
        LIMIT 200`,
       { query: normalizedQuery },
     );
 
-    const users: UserListItem[] = result.records.map((rec) => ({
-      id: rec.get('id'),
-      email: rec.get('email'),
-      name: rec.get('name'),
-      created_at: rec.get('created_at'),
-      escalation_count: rec.get('escCount').toNumber(),
-      has_high_risk: rec.get('hasHigh'),
-    }));
+    const users: UserListItem[] = result.records.map((rec) => {
+      const id = rec.get('id');
+      const esc = escMap.get(id);
+      return {
+        id,
+        email: rec.get('email'),
+        name: rec.get('name'),
+        created_at: rec.get('created_at'),
+        escalation_count: esc?.pathCount ?? 0,
+        has_high_risk: esc?.hasHighRisk ?? false,
+        score: esc?.score ?? 0,
+      };
+    });
 
     userCache.set(cacheKey, users, 15_000);
     return users;
@@ -87,34 +86,32 @@ export async function getAllUsers(): Promise<UserListItem[]> {
   const cached = userCache.get('users:all');
   if (cached) return cached as UserListItem[];
 
+  // Get batch escalation scores (single source of truth for risk data)
+  const escalationData = await batchEscalation();
+  const escMap = new Map(escalationData.map((e) => [e.userId, e]));
+
   const driver = getDriver();
   const session = driver.session();
   try {
     const result = await session.run(
       `MATCH (u:User)
-       OPTIONAL MATCH (u)-[:MEMBER_OF*1..6]->(:Group)
-                      -[:HAS_ROLE]->(:Role)-[:CAN_ACCESS]->(res:Resource)
-       WITH u,
-            count(DISTINCT res) AS escCount,
-            CASE WHEN EXISTS {
-              MATCH (u)-[:MEMBER_OF*1..6]->(:Group)
-                    -[:HAS_ROLE]->(r:Role)-[:CAN_ACCESS]->(:Resource)
-              WHERE r.risk_level = 'HIGH'
-            } THEN true ELSE false END AS hasHigh
-       RETURN u.id AS id, u.email AS email, u.name AS name,
-              u.created_at AS created_at,
-              escCount, hasHigh
+       RETURN u.id AS id, u.email AS email, u.name AS name, u.created_at AS created_at
        ORDER BY u.name, u.id`,
     );
 
-    const users: UserListItem[] = result.records.map((rec) => ({
-      id: rec.get('id'),
-      email: rec.get('email'),
-      name: rec.get('name'),
-      created_at: rec.get('created_at'),
-      escalation_count: rec.get('escCount').toNumber(),
-      has_high_risk: rec.get('hasHigh'),
-    }));
+    const users: UserListItem[] = result.records.map((rec) => {
+      const id = rec.get('id');
+      const esc = escMap.get(id);
+      return {
+        id,
+        email: rec.get('email'),
+        name: rec.get('name'),
+        created_at: rec.get('created_at'),
+        escalation_count: esc?.pathCount ?? 0,
+        has_high_risk: esc?.hasHighRisk ?? false,
+        score: esc?.score ?? 0,
+      };
+    });
 
     userCache.set('users:all', users, 15_000);
     return users;

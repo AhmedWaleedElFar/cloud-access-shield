@@ -96,7 +96,8 @@ export default function UserSearch({ onSelectUser }: UserSearchProps) {
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paths</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk</th>
                   <th scope="col" className="px-6 py-3" />
                 </tr>
@@ -115,6 +116,15 @@ export default function UserSearch({ onSelectUser }: UserSearchProps) {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.escalation_count ?? 0}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`font-semibold ${
+                        (user.score ?? 0) >= 60 ? 'text-red-600' :
+                        (user.score ?? 0) >= 30 ? 'text-orange-500' :
+                        'text-green-600'
+                      }`}>
+                        {user.score ?? 0}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {user.has_high_risk ? (
                         <RiskBadge level="HIGH" />
