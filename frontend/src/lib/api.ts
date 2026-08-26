@@ -11,13 +11,6 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 404) {
-      console.error('Not found:', error.config?.url);
-    } else if (error.response?.status === 500) {
-      console.error('Server error:', error.message);
-    } else if (error.message === 'Network Error') {
-      console.error('Network error — check backend and database');
-    }
     return Promise.reject(error);
   },
 );
