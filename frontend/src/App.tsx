@@ -9,11 +9,11 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 type Page = 'dashboard' | 'users' | 'access' | 'analytics';
 
-const navItems: { id: Page; label: string }[] = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'users', label: 'Users' },
-  { id: 'access', label: 'Access Paths' },
-  { id: 'analytics', label: 'Analytics' },
+const navItems: { id: Page; label: string; icon: string }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: '&#x1F4CA;' },
+  { id: 'users', label: 'Users', icon: '&#x1F465;' },
+  { id: 'access', label: 'Access Paths', icon: '&#x1F517;' },
+  { id: 'analytics', label: 'Analytics', icon: '&#x1F4C8;' },
 ];
 
 export default function App() {
@@ -65,7 +65,12 @@ export default function App() {
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Cloud Access Shield</h1>
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm font-bold">CAS</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Cloud Access Shield</h1>
+            </div>
             <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">IAM & Privilege Escalation Analyzer</p>
           </div>
         </div>
@@ -84,12 +89,13 @@ export default function App() {
                 tabIndex={currentPage === item.id ? 0 : -1}
                 onClick={() => setCurrentPage(item.id)}
                 onKeyDown={(e) => handleNavKeyDown(e, index)}
-                className={`px-3 py-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded ${
+                className={`relative px-3 py-4 border-b-2 font-medium text-sm transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset rounded ${
                   currentPage === item.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
+                <span className="mr-1.5" dangerouslySetInnerHTML={{ __html: item.icon }} />
                 {item.label}
               </button>
             ))}
@@ -98,10 +104,11 @@ export default function App() {
       </nav>
 
       <main
-        className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8"
+        className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 animate-in fade-in duration-200"
         role="tabpanel"
         id={`panel-${currentPage}`}
         aria-labelledby={`tab-${currentPage}`}
+        key={currentPage}
       >
         <ErrorBoundary>
           {currentPage === 'dashboard' && <Dashboard />}
