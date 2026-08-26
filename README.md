@@ -227,17 +227,17 @@ RETURN u.id, res.id
 ## Screenshots
 
 ### Dashboard
-![Dashboard](photos/dashboard-ss.png)
+<img src="photos/dashboard-ss.png" alt="Dashboard" width="800" />
 
 ### Users
-![Users](photos/users_1-ss.png)
-![Users Search](photos/users_2-ss.png)
+<img src="photos/users_1-ss.png" alt="Users List" width="800" />
+<img src="photos/users_2-ss.png" alt="Users Search" width="800" />
 
 ### Access Paths
-![Access Paths](photos/access_paths-ss.png)
+<img src="photos/access_paths-ss.png" alt="Access Paths" width="800" />
 
 ### Analytics
-![Analytics](photos/analytics-ss.png)
+<img src="photos/analytics-ss.png" alt="Analytics" width="800" />
 
 ## Project Structure
 
