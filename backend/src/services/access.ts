@@ -352,7 +352,8 @@ export async function simulateRevoke(req: SimulateRequest): Promise<SimulateResu
     const rec = result.records[0];
     const resCount = rec.get('resCount').toNumber();
     const worstRisk = (rec.get('worstRisk') as string) || 'LOW';
-    const maxPath = rec.get('maxPath').toNumber() || 0;
+    const maxPathRaw = rec.get('maxPath');
+    const maxPath = maxPathRaw ? maxPathRaw.toNumber() : 0;
 
     const highRisk = worstRisk === 'HIGH';
     const rawScore = resCount > 0
