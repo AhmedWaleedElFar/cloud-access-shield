@@ -224,6 +224,21 @@ RETURN u.id, res.id
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## Screenshots
+
+### Dashboard
+![Dashboard](photos/dashboard-ss.png)
+
+### Users
+![Users](photos/users_1-ss.png)
+![Users Search](photos/users_2-ss.png)
+
+### Access Paths
+![Access Paths](photos/access_paths-ss.png)
+
+### Analytics
+![Analytics](photos/analytics-ss.png)
+
 ## Project Structure
 
 ```
