@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '../lib/api';
 import type { AccessPath, EscalationDetail, RelationshipType, SimulateResult } from '@shared/types';
 import Loading from '../components/Loading';
@@ -35,7 +35,7 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
   const [simResult, setSimResult] = useState<SimulateResult | null>(null);
   const [simLoading, setSimLoading] = useState(false);
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     if (!userId) return;
     try {
       const [pathsRes, escRes] = await Promise.all([
@@ -47,7 +47,7 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
     } catch {
       // silent
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -55,26 +55,25 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
     setPaths([]);
     setEscalation(null);
     reload().finally(() => setLoading(false));
-  }, [userId]);
+  }, [userId, reload]);
 
-  const handleSimulate = async (
-    sourceId: string,
-    relationshipType: RelationshipType,
-    targetId: string,
-  ) => {
-    setSimLoading(true);
-    setSimResult(null);
-    try {
-      const res = await api.simulateRevoke({ userId: sourceId, relationshipType, targetId });
-      setSimResult(res.data);
-    } catch {
-      setToast({ message: 'Simulation failed', type: 'error' });
-    } finally {
-      setSimLoading(false);
-    }
-  };
+  const handleSimulate = useCallback(
+    async (sourceId: string, relationshipType: RelationshipType, targetId: string) => {
+      setSimLoading(true);
+      setSimResult(null);
+      try {
+        const res = await api.simulateRevoke({ userId: sourceId, relationshipType, targetId });
+        setSimResult(res.data);
+      } catch {
+        setToast({ message: 'Simulation failed', type: 'error' });
+      } finally {
+        setSimLoading(false);
+      }
+    },
+    [],
+  );
 
-  const handleRevoke = async () => {
+  const handleRevoke = useCallback(async () => {
     if (!confirm) return;
     try {
       const res = await api.revokeAccess({
@@ -94,7 +93,7 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
     } finally {
       setConfirm(null);
     }
-  };
+  }, [confirm, reload]);
 
   if (!userId) {
     return (
@@ -112,7 +111,7 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
       <h2 className="text-2xl font-bold text-gray-900">Access Paths — {userId}</h2>
 
       {escalation && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" role="group" aria-label="Escalation summary">
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-sm text-gray-500">Score</p>
             <p className="text-2xl font-bold text-gray-900">{escalation.score}</p>
@@ -132,9 +131,9 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-3" role="list" aria-label="Access paths">
         {paths.map((path, i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-4">
+          <div key={i} className="bg-white rounded-lg shadow p-4" role="listitem">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-500">Path {i + 1} — {path.hops} hops</span>
               <RiskBadge level={path.riskLevel} />
@@ -156,14 +155,14 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
                     </span>
                     {nextNode && (
                       <span className="mx-1 flex items-center gap-1">
-                        <span className="text-gray-400">→</span>
+                        <span className="text-gray-400" aria-hidden="true">&rarr;</span>
                         {relType && (
                           <span className="flex gap-1">
                             <button
                               onClick={() => handleSimulate(node.id, relType, nextNode.id)}
                               disabled={simLoading}
-                              className="text-[10px] px-1 py-0.5 rounded bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 disabled:opacity-50"
-                              title={`Simulate revoking ${relType}`}
+                              className="text-[10px] px-1 py-0.5 rounded bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              aria-label={`Simulate revoking ${relType} from ${node.label} to ${nextNode.label}`}
                             >
                               sim
                             </button>
@@ -174,8 +173,8 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
                                 targetId: nextNode.id,
                                 targetLabel: nextNode.label,
                               })}
-                              className="text-[10px] px-1 py-0.5 rounded bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-700"
-                              title={`Revoke ${relType} to ${nextNode.label}`}
+                              className="text-[10px] px-1 py-0.5 rounded bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                              aria-label={`Revoke ${relType} from ${node.label} to ${nextNode.label}`}
                             >
                               revoke
                             </button>
@@ -195,7 +194,7 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
       </div>
 
       {simResult && (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6" role="region" aria-label="Simulation result">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Simulation Result</h3>
           <p className="text-sm text-gray-600 mb-4">
             What happens if we revoke <code className="bg-gray-100 px-1 rounded">{simResult.relationshipType}</code> to <strong>{simResult.targetId}</strong>?
@@ -234,7 +233,8 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
               targetId: simResult.targetId,
               targetLabel: simResult.targetId,
             })}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            aria-label="Revoke this access after simulation"
           >
             Revoke This Access
           </button>
