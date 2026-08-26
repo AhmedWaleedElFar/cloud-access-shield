@@ -71,3 +71,50 @@ export interface UserStats {
   max_access: number;
   median_access: number;
 }
+
+// ============================================================
+// Access Control — Revoke & Simulate
+// ============================================================
+
+export type RelationshipType =
+  | 'MEMBER_OF'
+  | 'HAS_ROLE'
+  | 'CAN_ACCESS';
+
+export interface RevokeRequest {
+  userId: string;
+  relationshipType: RelationshipType;
+  targetId: string;
+}
+
+export interface RevokeResult {
+  success: boolean;
+  userId: string;
+  relationshipType: RelationshipType;
+  targetId: string;
+  deletedCount: number;
+}
+
+export interface SimulateRequest {
+  userId: string;
+  relationshipType: RelationshipType;
+  targetId: string;
+}
+
+export interface SimulateResult {
+  userId: string;
+  relationshipType: RelationshipType;
+  targetId: string;
+  before: {
+    score: number;
+    pathCount: number;
+    uniqueResources: number;
+    highRiskPaths: number;
+  };
+  after: {
+    score: number;
+    pathCount: number;
+    uniqueResources: number;
+    highRiskPaths: number;
+  };
+}

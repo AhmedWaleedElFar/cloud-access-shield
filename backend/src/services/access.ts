@@ -1,5 +1,9 @@
 import { getDriver } from '../db';
-import { AccessPath, AccessPathNode, RiskLevel } from '@shared/types';
+import {
+  AccessPath, AccessPathNode, RiskLevel,
+  RevokeRequest, RevokeResult,
+  SimulateRequest, SimulateResult, RelationshipType,
+} from '@shared/types';
 
 const RISK_SCORE: Record<RiskLevel, number> = { LOW: 1, MEDIUM: 3, HIGH: 5 };
 
@@ -265,6 +269,110 @@ export async function batchEscalation(): Promise<Array<{
         score: Math.min(100, Math.round(rawScore)),
       };
     });
+  } finally {
+    await session.close();
+  }
+}
+
+// ============================================================
+// Revoke: delete a specific relationship between two nodes
+// Uses parameterized query; validates relationship type against allowlist.
+// ============================================================
+
+const VALID_RELATIONSHIPS: Record<RelationshipType, { sourceLabel: string; targetLabel: string }> = {
+  MEMBER_OF: { sourceLabel: 'User', targetLabel: 'Group' },
+  HAS_ROLE: { sourceLabel: 'Group', targetLabel: 'Role' },
+  CAN_ACCESS: { sourceLabel: 'Role', targetLabel: 'Resource' },
+};
+
+export async function revokeAccess(req: RevokeRequest): Promise<RevokeResult> {
+  const driver = getDriver();
+  const session = driver.session();
+
+  const relInfo = VALID_RELATIONSHIPS[req.relationshipType];
+  if (!relInfo) {
+    throw new Error(`Invalid relationship type: ${req.relationshipType}`);
+  }
+
+  try {
+    const result = await session.run(
+      `MATCH (source:${relInfo.sourceLabel} {id: $sourceId})-[r:${req.relationshipType}]->(target:${relInfo.targetLabel} {id: $targetId})
+       DELETE r
+       RETURN count(r) AS deletedCount`,
+      { sourceId: req.userId, targetId: req.targetId },
+    );
+
+    const deletedCount = result.records[0].get('deletedCount').toNumber();
+
+    return {
+      success: deletedCount > 0,
+      userId: req.userId,
+      relationshipType: req.relationshipType,
+      targetId: req.targetId,
+      deletedCount,
+    };
+  } finally {
+    await session.close();
+  }
+}
+
+// ============================================================
+// Simulate: compute escalation score before and after a
+// hypothetical revocation without actually deleting anything.
+// ============================================================
+
+export async function simulateRevoke(req: SimulateRequest): Promise<SimulateResult> {
+  const driver = getDriver();
+  const session = driver.session();
+
+  const relInfo = VALID_RELATIONSHIPS[req.relationshipType];
+  if (!relInfo) {
+    throw new Error(`Invalid relationship type: ${req.relationshipType}`);
+  }
+
+  try {
+    const before = await computeEscalation(req.userId);
+
+    const depth = 6;
+    const result = await session.run(
+      `MATCH path = (u:User {id: $userId})-[:MEMBER_OF*1..${depth}]->(g:Group)
+             -[:HAS_ROLE]->(r:Role)-[:CAN_ACCESS]->(res:Resource)
+       WHERE NOT (u)-[:${req.relationshipType}]->({id: $targetId})
+       RETURN count(DISTINCT res) AS resCount,
+              max(r.risk_level) AS worstRisk,
+              max(length(path)) AS maxPath`,
+      { userId: req.userId, targetId: req.targetId },
+    );
+
+    const rec = result.records[0];
+    const resCount = rec.get('resCount').toNumber();
+    const worstRisk = (rec.get('worstRisk') as string) || 'LOW';
+    const maxPath = rec.get('maxPath').toNumber();
+
+    const highRisk = worstRisk === 'HIGH';
+    const rawScore = resCount > 0
+      ? (highRisk ? 50 : worstRisk === 'MEDIUM' ? 25 : 10) +
+        (maxPath / 6) * 30 +
+        (resCount / 30) * 20
+      : 0;
+
+    return {
+      userId: req.userId,
+      relationshipType: req.relationshipType,
+      targetId: req.targetId,
+      before: {
+        score: before.score,
+        pathCount: before.pathCount,
+        uniqueResources: before.uniqueResources,
+        highRiskPaths: before.highRiskPaths,
+      },
+      after: {
+        score: Math.min(100, Math.round(rawScore)),
+        pathCount: resCount,
+        uniqueResources: resCount,
+        highRiskPaths: highRisk ? Math.min(resCount, before.highRiskPaths) : 0,
+      },
+    };
   } finally {
     await session.close();
   }

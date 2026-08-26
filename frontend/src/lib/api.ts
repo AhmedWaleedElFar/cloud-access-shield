@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { API_URL, API_TIMEOUT } from '../config';
+import type { RevokeRequest, RevokeResult, SimulateRequest, SimulateResult } from '@shared/types';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -62,4 +63,10 @@ export const api = {
 
   analyzeBatch: (userIds: string[]) =>
     apiClient.post('/api/analyze/escalation', { userIds }),
+
+  revokeAccess: (req: RevokeRequest) =>
+    apiClient.post<RevokeResult>('/api/access/revoke', req),
+
+  simulateRevoke: (req: SimulateRequest) =>
+    apiClient.post<SimulateResult>('/api/access/simulate', req),
 };
