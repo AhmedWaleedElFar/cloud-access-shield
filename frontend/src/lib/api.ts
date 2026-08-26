@@ -22,12 +22,10 @@ apiClient.interceptors.response.use(
 );
 
 export const api = {
-  // Health
   checkHealth: () => apiClient.get('/health'),
 
-  // Users
-  getUsers: (limit = 50, offset = 0) =>
-    apiClient.get('/api/users', { params: { limit, offset } }),
+  getUsers: () =>
+    apiClient.get('/api/users'),
 
   searchUsers: (query: string) =>
     apiClient.get('/api/users/search', { params: { q: query } }),
@@ -35,26 +33,33 @@ export const api = {
   getUser: (id: string) =>
     apiClient.get(`/api/users/${id}`),
 
-  // Access
-  getAccessPaths: (userId: string, depth?: number) =>
-    apiClient.get(`/api/access/paths/${userId}`, { params: { depth } }),
-
-  getEscalationPaths: (userId: string) =>
-    apiClient.get(`/api/access/escalations/${userId}`),
-
-  revokeAccess: (userId: string, groupId: string) =>
-    apiClient.post('/api/access/revoke', { userId, groupId }),
-
-  simulateAccess: (userId: string, groupId: string) =>
-    apiClient.post('/api/access/simulate', { userId, groupId }),
-
-  // Analytics
-  getDangerousRoles: (limit?: number) =>
-    apiClient.get('/api/analytics/dangerous-roles', { params: { limit } }),
-
-  getEscalationSummary: () =>
-    apiClient.get('/api/analytics/escalation-summary'),
-
   getUserStats: () =>
-    apiClient.get('/api/analytics/user-stats'),
+    apiClient.get('/api/users/stats'),
+
+  getUserPaths: (userId: string, depth?: number) =>
+    apiClient.get(`/api/users/${userId}/paths`, { params: { depth } }),
+
+  getUserEscalation: (userId: string) =>
+    apiClient.get(`/api/users/${userId}/escalation`),
+
+  getUserRoles: (userId: string) =>
+    apiClient.get(`/api/users/${userId}/roles`),
+
+  getRoles: () =>
+    apiClient.get('/api/users/roles/all'),
+
+  getEscalations: () =>
+    apiClient.get('/api/analytics/escalations'),
+
+  getCycles: () =>
+    apiClient.get('/api/analytics/cycles'),
+
+  getForbidden: () =>
+    apiClient.get('/api/analytics/forbidden'),
+
+  analyzeEscalation: (userId: string) =>
+    apiClient.post('/api/analyze/escalation', { userId }),
+
+  analyzeBatch: (userIds: string[]) =>
+    apiClient.post('/api/analyze/escalation', { userIds }),
 };
