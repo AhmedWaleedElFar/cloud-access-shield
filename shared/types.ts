@@ -72,6 +72,17 @@ export interface UserStats {
   median_access: number;
 }
 
+export interface EscalationDetail {
+  userId: string;
+  pathCount: number;
+  uniqueResources: number;
+  highRiskPaths: number;
+  score: number;
+  avgPathLength: number;
+  longestPath: number;
+  topRiskPaths: AccessPath[];
+}
+
 // ============================================================
 // Access Control — Revoke & Simulate
 // ============================================================
