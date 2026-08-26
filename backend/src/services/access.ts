@@ -297,12 +297,13 @@ export async function revokeAccess(req: RevokeRequest): Promise<RevokeResult> {
   try {
     const result = await session.run(
       `MATCH (source:${relInfo.sourceLabel} {id: $sourceId})-[r:${req.relationshipType}]->(target:${relInfo.targetLabel} {id: $targetId})
+       WITH r LIMIT 1
        DELETE r
-       RETURN count(r) AS deletedCount`,
+       RETURN 1 AS deletedCount`,
       { sourceId: req.userId, targetId: req.targetId },
     );
 
-    const deletedCount = result.records[0].get('deletedCount').toNumber();
+    const deletedCount = result.records.length;
 
     return {
       success: deletedCount > 0,
@@ -333,21 +334,25 @@ export async function simulateRevoke(req: SimulateRequest): Promise<SimulateResu
   try {
     const before = await computeEscalation(req.userId);
 
+    // Compute AFTER: paths that don't traverse through the target relationship.
+    // We filter paths by checking that no relationship in the path matches
+    // the type + source/target pair being revoked.
     const depth = 6;
     const result = await session.run(
       `MATCH path = (u:User {id: $userId})-[:MEMBER_OF*1..${depth}]->(g:Group)
              -[:HAS_ROLE]->(r:Role)-[:CAN_ACCESS]->(res:Resource)
-       WHERE NOT (u)-[:${req.relationshipType}]->({id: $targetId})
+       WHERE NOT any(rel IN relationships(path) WHERE type(rel) = $relType
+                     AND startNode(rel).id = $sourceId AND endNode(rel).id = $targetId)
        RETURN count(DISTINCT res) AS resCount,
               max(r.risk_level) AS worstRisk,
               max(length(path)) AS maxPath`,
-      { userId: req.userId, targetId: req.targetId },
+      { userId: req.userId, relType: req.relationshipType, sourceId: req.userId, targetId: req.targetId },
     );
 
     const rec = result.records[0];
     const resCount = rec.get('resCount').toNumber();
     const worstRisk = (rec.get('worstRisk') as string) || 'LOW';
-    const maxPath = rec.get('maxPath').toNumber();
+    const maxPath = rec.get('maxPath').toNumber() || 0;
 
     const highRisk = worstRisk === 'HIGH';
     const rawScore = resCount > 0
