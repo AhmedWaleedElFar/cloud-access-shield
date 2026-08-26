@@ -126,11 +126,7 @@ export default function UserSearch({ onSelectUser }: UserSearchProps) {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {user.has_high_risk ? (
-                        <RiskBadge level="HIGH" />
-                      ) : (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">OK</span>
-                      )}
+                      <RiskBadge level={(user.worst_risk ?? 'LOW') as 'LOW' | 'MEDIUM' | 'HIGH'} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <span className="text-blue-600 hover:text-blue-900">View Paths</span>

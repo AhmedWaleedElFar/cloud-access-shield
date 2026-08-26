@@ -137,9 +137,9 @@ export default function AccessPaths({ userId }: AccessPathsProps) {
 
       {/* Main layout: optional sidebar + paths */}
       <div className="flex gap-5" style={{ alignItems: 'flex-start' }}>
-        {/* Simulation Sidebar — left side */}
+        {/* Simulation Sidebar — left side, sticky */}
         {showSimPanel && (
-          <div className="w-[340px] shrink-0 bg-gradient-to-b from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5 animate-in fade-in slide-in-from-left-2" role="region" aria-label="Simulation result">
+          <div className="w-[340px] shrink-0 bg-gradient-to-b from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5 sticky top-[116px] animate-in fade-in slide-in-from-left-2" role="region" aria-label="Simulation result">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-lg">&#x1F9EA;</span>

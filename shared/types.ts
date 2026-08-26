@@ -59,6 +59,7 @@ export interface EscalationSummary {
 export interface UserListItem extends User {
   escalation_count?: number;
   has_high_risk?: boolean;
+  worst_risk?: string;
   score?: number;
 }
 

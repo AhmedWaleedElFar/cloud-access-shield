@@ -8,6 +8,7 @@ interface EscalationRow {
   userName: string;
   pathCount: number;
   hasHighRisk: boolean;
+  worstRisk: string;
   score: number;
 }
 
@@ -96,7 +97,7 @@ export default function Analytics() {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 tabular-nums">{row.pathCount}</td>
                   <td className="px-4 py-3">
-                    {row.hasHighRisk && <RiskBadge level="HIGH" />}
+                    <RiskBadge level={row.worstRisk as 'LOW' | 'MEDIUM' | 'HIGH'} />
                   </td>
                 </tr>
               ))}

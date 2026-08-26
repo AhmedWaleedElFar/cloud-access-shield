@@ -71,6 +71,7 @@ export async function searchUsers(query: string): Promise<UserListItem[]> {
         created_at: rec.get('created_at'),
         escalation_count: esc?.pathCount ?? 0,
         has_high_risk: esc?.hasHighRisk ?? false,
+        worst_risk: esc?.worstRisk ?? 'LOW',
         score: esc?.score ?? 0,
       };
     });
@@ -109,6 +110,7 @@ export async function getAllUsers(): Promise<UserListItem[]> {
         created_at: rec.get('created_at'),
         escalation_count: esc?.pathCount ?? 0,
         has_high_risk: esc?.hasHighRisk ?? false,
+        worst_risk: esc?.worstRisk ?? 'LOW',
         score: esc?.score ?? 0,
       };
     });

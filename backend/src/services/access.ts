@@ -228,6 +228,7 @@ export async function batchEscalation(): Promise<Array<{
   userId: string;
   userName: string;
   pathCount: number;
+  worstRisk: string;
   hasHighRisk: boolean;
   score: number;
 }>> {
@@ -240,23 +241,25 @@ export async function batchEscalation(): Promise<Array<{
              -[:HAS_ROLE]->(r:Role)-[:CAN_ACCESS]->(res:Resource)
        WITH u,
             count(DISTINCT res) AS resCount,
-            max(r.risk_level) AS worstRisk,
+            collect(DISTINCT r.risk_level) AS riskLevels,
             max(length(path)) AS maxPath
        RETURN u.id AS userId,
               u.name AS userName,
               resCount,
-              worstRisk,
+              riskLevels,
               maxPath`,
     );
 
     return result.records.map((rec) => {
       const resCount = rec.get('resCount').toNumber();
-      const worstRisk = rec.get('worstRisk') as string;
+      const riskLevels = rec.get('riskLevels') as string[];
       const maxPath = rec.get('maxPath').toNumber();
-      const highRisk = worstRisk === 'HIGH';
+      const hasHigh = riskLevels.includes('HIGH');
+      const hasMedium = riskLevels.includes('MEDIUM');
+      const worstRisk = hasHigh ? 'HIGH' : hasMedium ? 'MEDIUM' : 'LOW';
 
       const rawScore = resCount > 0
-        ? (highRisk ? 50 : worstRisk === 'MEDIUM' ? 25 : 10) +
+        ? (hasHigh ? 50 : hasMedium ? 25 : 10) +
           (maxPath / 6) * 30 +
           (resCount / 30) * 20
         : 0;
@@ -265,7 +268,8 @@ export async function batchEscalation(): Promise<Array<{
         userId: rec.get('userId'),
         userName: rec.get('userName'),
         pathCount: resCount,
-        hasHighRisk: highRisk,
+        worstRisk,
+        hasHighRisk: hasHigh,
         score: Math.min(100, Math.round(rawScore)),
       };
     });
@@ -344,20 +348,21 @@ export async function simulateRevoke(req: SimulateRequest): Promise<SimulateResu
        WHERE NOT any(rel IN relationships(path) WHERE type(rel) = $relType
                      AND startNode(rel).id = $sourceId AND endNode(rel).id = $targetId)
        RETURN count(DISTINCT res) AS resCount,
-              max(r.risk_level) AS worstRisk,
+              collect(DISTINCT r.risk_level) AS riskLevels,
               max(length(path)) AS maxPath`,
       { userId: req.userId, relType: req.relationshipType, sourceId: req.userId, targetId: req.targetId },
     );
 
     const rec = result.records[0];
     const resCount = rec.get('resCount').toNumber();
-    const worstRisk = (rec.get('worstRisk') as string) || 'LOW';
+    const riskLevels = rec.get('riskLevels') as string[];
     const maxPathRaw = rec.get('maxPath');
     const maxPath = maxPathRaw ? maxPathRaw.toNumber() : 0;
 
-    const highRisk = worstRisk === 'HIGH';
+    const hasHigh = riskLevels.includes('HIGH');
+    const hasMedium = riskLevels.includes('MEDIUM');
     const rawScore = resCount > 0
-      ? (highRisk ? 50 : worstRisk === 'MEDIUM' ? 25 : 10) +
+      ? (hasHigh ? 50 : hasMedium ? 25 : 10) +
         (maxPath / 6) * 30 +
         (resCount / 30) * 20
       : 0;
@@ -376,7 +381,7 @@ export async function simulateRevoke(req: SimulateRequest): Promise<SimulateResu
         score: Math.min(100, Math.round(rawScore)),
         pathCount: resCount,
         uniqueResources: resCount,
-        highRiskPaths: highRisk ? Math.min(resCount, before.highRiskPaths) : 0,
+        highRiskPaths: hasHigh ? Math.min(resCount, before.highRiskPaths) : 0,
       },
     };
   } finally {
